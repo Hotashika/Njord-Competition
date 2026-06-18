@@ -1,16 +1,15 @@
-import os
-import numpy as np
+from pathlib import Path
 from ultralytics import YOLO
-
+from vision.depth_utils import get_distance_from_bbox
 
 class BuoyDetector:
     def __init__(self, model_path="models/best.pt", device=None):
-        # Eğer path göreceli ise, project root'u bulup mutlak yola çevir
-        if not os.path.isabs(model_path):
-            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            model_path = os.path.join(project_root, model_path)
+        model_p = Path(model_path)
+        if not model_p.is_absolute():
+            project_root = Path(__file__).resolve().parent.parent
+            model_p = project_root / model_path
 
-        self.model = YOLO(model_path)
+        self.model = YOLO(str(model_p))
         self.device = device
 
         self.class_names = {
@@ -25,7 +24,6 @@ class BuoyDetector:
         """
         BGR görüntüyü ve derinlik matrisini alıp tespitleri döndürür.
         """
-        # Cihaz belirtilmişse onu kullan, belirtilmemişse varsayılan YOLO davranışını (GPU varsa GPU) kullan.
         results = self.model(bgr_image, device=self.device, verbose=False)
         detections = []
 
@@ -35,24 +33,15 @@ class BuoyDetector:
             conf = float(box.conf[0].cpu().numpy())
 
             class_name = self.class_names.get(cls_id, f"unknown_{cls_id}")
+            bbox = [x1, y1, x2, y2]
 
-            h, w = depth_array.shape
-            x1_c, x2_c = max(0, x1), min(w, x2)
-            y1_c, y2_c = max(0, y1), min(h, y2)
-
-            if y2_c > y1_c and x2_c > x1_c:
-                distance = float(np.nanmedian(depth_array[y1_c:y2_c, x1_c:x2_c]))
-            else:
-                distance = -1.0
-
-            if not np.isfinite(distance):
-                distance = -1.0
+            distance = get_distance_from_bbox(depth_array, bbox, method="median")
 
             detections.append({
                 "class": class_name,
                 "confidence": round(conf, 3),
                 "distance": round(distance, 2),
-                "bbox": [x1, y1, x2, y2]
+                "bbox": bbox
             })
 
         return detections

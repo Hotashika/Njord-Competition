@@ -29,3 +29,7 @@ def health():
 
 def start(port=5000):
     app.run(host='0.0.0.0', port=port, threaded=True, use_reloader=False)
+
+
+
+# FLASK İLE YER KONTROL İSTASYONUNA VIDEO AKIŞI SAĞLAYAN SUNUCU

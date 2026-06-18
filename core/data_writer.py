@@ -6,7 +6,7 @@ import pyzed.sl as sl
 import cv2
 from core import shared_state
 
-OUTPUT_DIR = "output"
+OUTPUT_DIR = "logs"
 DEPTH_DIR = os.path.join(OUTPUT_DIR, "depth_frames")
 CSV_PATH = os.path.join(OUTPUT_DIR, "imu_log.csv")
 

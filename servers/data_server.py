@@ -41,3 +41,5 @@ def health():
 
 def start(port=5001):
     app.run(host='0.0.0.0', port=port, threaded=True, use_reloader=False)
+
+# FLASK İLE YER KONTROL İSTASYONUNA IMU VE DERİNLİK VERİSİ AKIŞI SAĞLAYAN SUNUCU
