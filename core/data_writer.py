@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pyzed.sl as sl
 import cv2
-import shared_state
+from core import shared_state
 
 OUTPUT_DIR = "output"
 DEPTH_DIR = os.path.join(OUTPUT_DIR, "depth_frames")

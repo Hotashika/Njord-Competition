@@ -5,15 +5,18 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from multiprocessing import shared_memory
 import numpy as np
-from ultralytics import YOLO
+from vision.detector import BuoyDetector
 
 RGB_SHAPE = (376, 672, 4)
 DEPTH_SHAPE = (376, 672)
 
+
 class VisionNode(Node):
     def __init__(self):
         super().__init__('vision_node')
-        self.model = YOLO('yolov8n.pt')
+
+        # YOLO modelini detector sınıfı üzerinden başlatıyoruz
+        self.detector = BuoyDetector(model_path="models/best.pt")
 
         # main.py shared memory'i daha önce oluşturmuş olmalı; race durumuna karşı retry
         self.rgb_shm = self._attach_with_retry("zed_rgb")
@@ -26,6 +29,8 @@ class VisionNode(Node):
 
         self.last_frame_id = -1
         self.pub = self.create_publisher(String, '/vision/detections', 10)
+
+        # 15 FPS (saniyede 15 kere çalışacak)
         self.create_timer(1 / 15, self.process_frame)
 
     def _attach_with_retry(self, name, retries=20, delay=0.5):
@@ -42,28 +47,19 @@ class VisionNode(Node):
             return  # yeni frame yok, tekrar işlemeye gerek yok
         self.last_frame_id = frame_id
 
-        rgb = self.rgb.copy()
-        depth = self.depth.copy()
+        # Shared memory'den numpy dizilerine kopyala
+        bgr_image = self.rgb[:, :, :3].copy()  # BGRA'dan BGR'a geçiş
+        depth_array = self.depth.copy()
 
-        results = self.model(rgb[:, :, :3])  # BGRA->BGR
+        # Detector sınıfını çağırarak tespitleri al
+        detections = self.detector.detect(bgr_image, depth_array)
 
-        detections = []
-        for box in results[0].boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
-            distance = float(np.nanmedian(depth[y1:y2, x1:x2]))
-            cls_id = int(box.cls[0])
-            class_name = self.model.names[cls_id]
-            
-            detections.append({
-                "class": class_name,
-                "distance": distance if np.isfinite(distance) else -1.0,
-                "bbox": [x1, y1, x2, y2]
-            })
-
+        # Eğer tespit edilen bir nesne varsa JSON olarak MAVLink köprüsüne yayınla
         if detections:
             msg = String()
             msg.data = json.dumps(detections)
             self.pub.publish(msg)
+
 
 def main():
     rclpy.init()
@@ -75,6 +71,7 @@ def main():
     finally:
         node.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

@@ -1,9 +1,9 @@
 import threading
 import pyzed.sl as sl
-import video_server
-import data_server
-import data_writer
-import shared_state  # Shared memory temizliği için eklendi
+from servers import video_server
+from servers import data_server
+from core import data_writer
+from core import shared_state
 
 def init_camera():
     zed = sl.Camera()

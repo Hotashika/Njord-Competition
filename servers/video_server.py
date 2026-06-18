@@ -1,6 +1,6 @@
 import cv2
 from flask import Flask, Response
-import shared_state
+from core import shared_state
 
 app = Flask(__name__)
 
