@@ -1,3 +1,4 @@
+import os
 import threading
 import sys
 import subprocess
@@ -45,14 +46,23 @@ if __name__ == '__main__':
     time.sleep(1)
 
     try:
-        # Kendi ROS2 sürümüne göre (foxy, humble, iron vb.) burayı ayarlayabilirsin
+        # Kendi ROS2 sürümüne göre
         ros2_setup = "source /opt/ros/foxy/setup.bash"
 
-        # Komutları Bash kabuğu üzerinden sırayla çalıştıracak şekilde birleştiriyoruz
-        cmd_vision = f"{ros2_setup} && {sys.executable} vision/vision_node.py"
-        cmd_bridge = f"{ros2_setup} && {sys.executable} bridge/gcs_bridge.py"
+        # Projenin ana kök dizinini (ZED_ROS) buluyoruz
+        PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
-        # executable="/bin/bash" ve shell=True ile komutları Bash'e gönderiyoruz
+        # BÜYÜK KURTARICI: Alt süreçlere ana klasörümüzü modül yolu olarak tanıtıyoruz
+        python_path_setup = f"export PYTHONPATH='{PROJECT_ROOT}':$PYTHONPATH"
+
+        vision_path = os.path.join(PROJECT_ROOT, "vision", "vision_node.py")
+        bridge_path = os.path.join(PROJECT_ROOT, "bridge", "gcs_bridge.py")
+
+        # Komutları Bash kabuğu üzerinden sırayla çalıştıracak şekilde birleştiriyoruz
+        # Önce ROS2 source edilir, sonra PYTHONPATH ayarlanır, sonra script çalışır
+        cmd_vision = f"{ros2_setup} && {python_path_setup} && {sys.executable} '{vision_path}'"
+        cmd_bridge = f"{ros2_setup} && {python_path_setup} && {sys.executable} '{bridge_path}'"
+
         p_vision = subprocess.Popen(cmd_vision, shell=True, executable="/bin/bash")
         child_processes.append(p_vision)
         print(f" -> Vision Node başlatıldı (PID: {p_vision.pid})")
