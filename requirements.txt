@@ -17,9 +17,6 @@ ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0
 
-# ROS 2
-rclpy>=3.0.0
-
 # Additional utilities
 Werkzeug>=2.3.0
 
