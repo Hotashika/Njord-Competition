@@ -1,2 +1,7 @@
-MODEL_PATH = "path/to/your/model"  # Update this path to your model's location
-DEVICE = "cuda"  # Use "cuda" for GPU or "cpu" for CPU
+from pathlib import Path
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MODEL_PATH = str(BASE_DIR / "models" / "best.pt")
+DEVICE = "cuda"

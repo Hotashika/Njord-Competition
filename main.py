@@ -49,7 +49,7 @@ if __name__ == '__main__':
         # Kendi ROS2 sürümüne göre
         ros2_setup = "source /opt/ros/foxy/setup.bash"
 
-        # Projenin ana kök dizinini (ZED_ROS) buluyoruz
+        # Projenin ana kök dizinini (Njord Competition) buluyoruz
         PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
         # BÜYÜK KURTARICI: Alt süreçlere ana klasörümüzü modül yolu olarak tanıtıyoruz

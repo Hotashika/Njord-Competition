@@ -1,9 +1,10 @@
 from pathlib import Path
 from ultralytics import YOLO
 from vision.depth_utils import get_distance_from_bbox
+from config.vision_config import MODEL_PATH, DEVICE
 
 class BuoyDetector:
-    def __init__(self, model_path="models/best.pt", device=None):
+    def __init__(self, model_path=MODEL_PATH, device=DEVICE):
         model_p = Path(model_path)
         if not model_p.is_absolute():
             project_root = Path(__file__).resolve().parent.parent
