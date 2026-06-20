@@ -15,13 +15,11 @@ class VisionNode(Node):
     def __init__(self):
         super().__init__('vision_node')
 
-        # YOLO modelini detector sınıfı üzerinden başlatıyoruz
         self.detector = BuoyDetector(model_path="models/best.pt")
 
-        # main.py shared memory'i daha önce oluşturmuş olmalı; race durumuna karşı retry
-        self.rgb_shm = self._attach_with_retry("zed_rgb")
-        self.depth_shm = self._attach_with_retry("zed_depth")
-        self.meta_shm = self._attach_with_retry("zed_meta")
+        self.rgb_shm = self._attach_with_retry("RGB_DATA")
+        self.depth_shm = self._attach_with_retry("DEPTH_DATA")
+        self.meta_shm = self._attach_with_retry("ZED_META")
 
         self.rgb = np.ndarray(RGB_SHAPE, dtype=np.uint8, buffer=self.rgb_shm.buf)
         self.depth = np.ndarray(DEPTH_SHAPE, dtype=np.float32, buffer=self.depth_shm.buf)
@@ -30,7 +28,7 @@ class VisionNode(Node):
         self.last_frame_id = -1
         self.pub = self.create_publisher(String, '/vision/detections', 10)
 
-        # 15 FPS (saniyede 15 kere çalışacak)
+        # 15 FPS
         self.create_timer(1 / 15, self.process_frame)
 
     def _attach_with_retry(self, name, retries=20, delay=0.5):
@@ -44,17 +42,15 @@ class VisionNode(Node):
     def process_frame(self):
         frame_id = int(self.meta[0])
         if frame_id == self.last_frame_id:
-            return  # yeni frame yok, tekrar işlemeye gerek yok
+            return
         self.last_frame_id = frame_id
 
         # Shared memory'den numpy dizilerine kopyala
-        bgr_image = self.rgb[:, :, :3].copy()  # BGRA'dan BGR'a geçiş
+        bgr_image = self.rgb[:, :, :3].copy()  # BGRA TO BGR
         depth_array = self.depth.copy()
 
-        # Detector sınıfını çağırarak tespitleri al
-        detections = self.detector.detect(bgr_image, depth_array)
-
         # Eğer tespit edilen bir nesne varsa JSON olarak MAVLink köprüsüne yayınla
+        detections = self.detector.detect(bgr_image, depth_array)
         if detections:
             msg = String()
             msg.data = json.dumps(detections)

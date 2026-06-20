@@ -1,3 +1,4 @@
+# mavlink_utilites.py
 from pymavlink import mavutil
 
 
@@ -47,6 +48,7 @@ def set_mode(master, mode_name):
     return True
 
 
+
 def download_mission(master, logger=None):
     """Pixhawk'tan GPS noktalarını (Waypoints) indirir ve liste olarak döndürür."""
     waypoints = []
@@ -56,7 +58,7 @@ def download_mission(master, logger=None):
     msg = master.recv_match(type=['MISSION_COUNT'], blocking=True, timeout=5)
 
     if not msg:
-        if logger: logger.error("Görev sayısı alınamadı (Zaman aşımı)!")
+        if logger: logger.error("Görev sayısı alınamadı!")
         return waypoints
 
     count = msg.count
