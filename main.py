@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     try:
         # Ros source
-        ros2_setup = "source /opt/ros/foxy/setup.bash"
+        ros2_setup = "source /opt/ros/kilted/setup.bash"
 
         # Kök dizinini bul
         PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))

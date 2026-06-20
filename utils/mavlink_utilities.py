@@ -11,6 +11,15 @@ def arm_vehicle(master):
         1, 0, 0, 0, 0, 0, 0
     )
 
+def arm_vehicle_force(connection):
+    connection.mav.command_long_send(
+        connection.target_system, connection.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        1,      # Arm
+        21196,  # Force arm param
+        0, 0, 0, 0, 0
+    )
 
 def disarm_vehicle(master):
     """Aracı DISARM eder (Motorları kapatır)"""
