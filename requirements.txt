@@ -19,4 +19,3 @@ torchvision>=0.15.0
 
 # Additional utilities
 Werkzeug>=2.3.0
-

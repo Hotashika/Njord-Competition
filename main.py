@@ -27,10 +27,9 @@ def init_camera():
 
 
 if __name__ == '__main__':
-    # 1. Kamerayı İlklendir
     zed = init_camera()
 
-    # 2. Flask Sunucularını Thread olarak başlat (Zaten izoleler)
+    # Flask
     threading.Thread(target=video_server.start, args=(5000,), daemon=True).start()
     threading.Thread(target=data_server.start, args=(5001,), daemon=True).start()
 
@@ -38,28 +37,23 @@ if __name__ == '__main__':
     print("[SYSTEM] Video stream  -> http://0.0.0.0:5000/video_feed")
     print("[SYSTEM] Data stream   -> http://0.0.0.0:5001/data/stream")
 
-    # 3. Alt Süreçleri (Subprocesses) Başlat
+    # Create child process
     child_processes = []
     print("\n[SYSTEM] Alt süreçler (Vision ve Bridge) ROS2 ortamında başlatılıyor...")
 
-    # Shared memory'nin (data_writer içinde) tam oturması için ufak bir bekleme
     time.sleep(1)
 
     try:
-        # Kendi ROS2 sürümüne göre
+        # Ros source
         ros2_setup = "source /opt/ros/foxy/setup.bash"
 
-        # Projenin ana kök dizinini (Njord Competition) buluyoruz
+        # Kök dizinini bul
         PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-
-        # BÜYÜK KURTARICI: Alt süreçlere ana klasörümüzü modül yolu olarak tanıtıyoruz
         python_path_setup = f"export PYTHONPATH='{PROJECT_ROOT}':$PYTHONPATH"
 
         vision_path = os.path.join(PROJECT_ROOT, "vision", "vision_node.py")
         bridge_path = os.path.join(PROJECT_ROOT, "bridge", "gcs_bridge.py")
 
-        # Komutları Bash kabuğu üzerinden sırayla çalıştıracak şekilde birleştiriyoruz
-        # Önce ROS2 source edilir, sonra PYTHONPATH ayarlanır, sonra script çalışır
         cmd_vision = f"{ros2_setup} && {python_path_setup} && {sys.executable} '{vision_path}'"
         cmd_bridge = f"{ros2_setup} && {python_path_setup} && {sys.executable} '{bridge_path}'"
 
@@ -73,7 +67,7 @@ if __name__ == '__main__':
 
         print("[SYSTEM] Sistem aktif. Kapatmak için terminalde Ctrl+C yapın.")
 
-        # 4. Ana döngüyü (Frame yakalama ve SHM yazma) başlat
+
         data_writer.run(zed)
 
     except KeyboardInterrupt:
@@ -81,20 +75,20 @@ if __name__ == '__main__':
     finally:
         print("[SYSTEM] Temizlik işlemi başlatılıyor...")
 
-        # Alt süreçleri güvenlice kapat (Zombi process kalmaması için)
+        # Kill child proc
         for p in child_processes:
             try:
                 p.terminate()
-                p.wait(timeout=2)  # Kapanmaları için en fazla 2 saniye bekle
+                p.wait(timeout=2)
             except Exception as e:
                 print(f"[SYSTEM] Alt süreç kapatılırken hata oluştu: {e}")
 
         print("[SYSTEM] Alt süreçler (Vision & Bridge) kapatıldı.")
 
-        # Kamerayı kapat
+        # Close camera
         zed.close()
 
-        # Shared Memory (Paylaşımlı Bellek) segmentlerini temizleme
+        # Cleans shared Memory
         try:
             shared_state._rgb_shm.close()
             shared_state._rgb_shm.unlink()
@@ -104,6 +98,6 @@ if __name__ == '__main__':
             shared_state._meta_shm.unlink()
             print("[SYSTEM] Paylaşımlı bellek (Shared Memory) temizlendi.")
         except Exception:
-            pass  # Eğer daha önceden temizlenmişse sessizce geç
+            pass
 
         print("[SYSTEM] ZED kapatıldı. Tüm sistem güvenle durduruldu. İyi günler!")
