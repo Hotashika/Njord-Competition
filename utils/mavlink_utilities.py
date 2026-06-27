@@ -1,76 +1,372 @@
-from pymavlink import mavutil
+from dataclasses import dataclass
+
+import rclpy
+
+from sensor_msgs.msg import Imu, NavSatFix, BatteryState
+from std_msgs.msg import String, Float32
+from geometry_msgs.msg import Twist
+
+from std_srvs.srv import Trigger
+from mavros_msgs.srv import SetMode
 
 
-def arm_vehicle(master):
-    """Aracı ARM eder (Motorlara güç verir)"""
-    master.mav.command_long_send(
-        master.target_system,
-        master.target_component,
-        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        0,
-        1, 0, 0, 0, 0, 0, 0
+# ============================================================
+# TOPIC STRUCTURES
+# ============================================================
+
+@dataclass
+class BridgeTopics:
+    imu_pub: object
+    gps_pub: object
+    gps_heading_pub: object
+    relative_alt_pub: object
+    battery_pub: object
+    state_pub: object
+    error_pub: object
+    cmd_vel_sub: object
+
+
+@dataclass
+class MissionTopics:
+    gps_sub: object
+    heading_sub: object
+    state_sub: object
+    cmd_vel_pub: object
+
+
+def create_bridge_topics(node, cmd_vel_callback):
+    """
+    orange_cube_bridge.py icin topic yapilarini olusturur.
+
+    Bridge tarafinin gorevi:
+        - MAVLink'ten gelen verileri ROS topic olarak yayinlamak
+        - /cube/cmd_vel topic'ini dinleyip araca hareket komutu gondermek
+
+    Olusan topicler:
+        Publishers:
+            /cube/imu
+            /cube/gps
+            /cube/gps/heading
+            /cube/gps/relative_altitude
+            /cube/battery
+            /cube/state
+            /cube/error
+
+        Subscriber:
+            /cube/cmd_vel
+    """
+
+    imu_pub = node.create_publisher(
+        Imu,
+        '/cube/imu',
+        10
     )
 
-def arm_vehicle_force(connection):
-    connection.mav.command_long_send(
-        connection.target_system, connection.target_component,
-        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        0,
-        1,      # Arm
-        21196,  # Force arm param
-        0, 0, 0, 0, 0
+    gps_pub = node.create_publisher(
+        NavSatFix,
+        '/cube/gps',
+        10
     )
 
-def disarm_vehicle(master):
-    """Aracı DISARM eder (Motorları kapatır)"""
-    master.mav.command_long_send(
-        master.target_system,
-        master.target_component,
-        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        0,
-        0, 0, 0, 0, 0, 0, 0
+    gps_heading_pub = node.create_publisher(
+        Float32,
+        '/cube/gps/heading',
+        10
+    )
+
+    relative_alt_pub = node.create_publisher(
+        Float32,
+        '/cube/gps/relative_altitude',
+        10
+    )
+
+    battery_pub = node.create_publisher(
+        BatteryState,
+        '/cube/battery',
+        10
+    )
+
+    state_pub = node.create_publisher(
+        String,
+        '/cube/state',
+        10
+    )
+
+    error_pub = node.create_publisher(
+        String,
+        '/cube/error',
+        10
+    )
+
+    cmd_vel_sub = node.create_subscription(
+        Twist,
+        '/cube/cmd_vel',
+        cmd_vel_callback,
+        10
+    )
+
+    return BridgeTopics(
+        imu_pub=imu_pub,
+        gps_pub=gps_pub,
+        gps_heading_pub=gps_heading_pub,
+        relative_alt_pub=relative_alt_pub,
+        battery_pub=battery_pub,
+        state_pub=state_pub,
+        error_pub=error_pub,
+        cmd_vel_sub=cmd_vel_sub,
     )
 
 
-def set_mode(master, mode_name):
-    """Aracın uçuş/sürüş modunu değiştirir (Örn: 'AUTO', 'MANUAL', 'HOLD')"""
-    # MAVLink'in araç tipine göre mod ID'sini bul
-    if mode_name not in master.mode_mapping():
+def create_mission_topics(node, gps_callback, heading_callback, state_callback):
+    """
+    mission_node.py veya diger gorev node'lari icin topic yapilarini olusturur.
+
+    Mission tarafinin gorevi:
+        - GPS bilgisini dinlemek
+        - Heading bilgisini dinlemek
+        - Bridge state bilgisini dinlemek
+        - /cube/cmd_vel uzerinden hareket komutu yayinlamak
+
+    Olusan topicler:
+        Subscribers:
+            /cube/gps
+            /cube/gps/heading
+            /cube/state
+
+        Publisher:
+            /cube/cmd_vel
+    """
+
+    gps_sub = node.create_subscription(
+        NavSatFix,
+        '/cube/gps',
+        gps_callback,
+        10
+    )
+
+    heading_sub = node.create_subscription(
+        Float32,
+        '/cube/gps/heading',
+        heading_callback,
+        10
+    )
+
+    state_sub = node.create_subscription(
+        String,
+        '/cube/state',
+        state_callback,
+        10
+    )
+
+    cmd_vel_pub = node.create_publisher(
+        Twist,
+        '/cube/cmd_vel',
+        10
+    )
+
+    return MissionTopics(
+        gps_sub=gps_sub,
+        heading_sub=heading_sub,
+        state_sub=state_sub,
+        cmd_vel_pub=cmd_vel_pub,
+    )
+
+
+# ============================================================
+# SERVICE STRUCTURES
+# ============================================================
+
+@dataclass
+class BridgeServices:
+    set_mode_srv: object
+    arm_srv: object
+    disarm_srv: object
+
+
+@dataclass
+class MissionServiceClients:
+    set_mode_client: object
+    arm_client: object
+    disarm_client: object
+
+
+def create_bridge_services(node, set_mode_callback, arm_callback, disarm_callback):
+    """
+    orange_cube_bridge.py icin service server yapilarini olusturur.
+
+    Bridge tarafinda olusan servisler:
+        /cube/set_mode_service
+        /cube/arm
+        /cube/disarm
+
+    Bu servisleri mission_node veya diger gorev node'lari cagirir.
+    Bridge bu istekleri MAVLink komutuna cevirir.
+    """
+
+    set_mode_srv = node.create_service(
+        SetMode,
+        '/cube/set_mode_service',
+        set_mode_callback
+    )
+
+    arm_srv = node.create_service(
+        Trigger,
+        '/cube/arm',
+        arm_callback
+    )
+
+    disarm_srv = node.create_service(
+        Trigger,
+        '/cube/disarm',
+        disarm_callback
+    )
+
+    return BridgeServices(
+        set_mode_srv=set_mode_srv,
+        arm_srv=arm_srv,
+        disarm_srv=disarm_srv,
+    )
+
+
+def create_mission_clients(node):
+    """
+    mission_node.py veya diger gorev node'lari icin service client yapilarini olusturur.
+
+    Mission tarafinin cagiracagi servisler:
+        /cube/set_mode_service
+        /cube/arm
+        /cube/disarm
+    """
+
+    set_mode_client = node.create_client(
+        SetMode,
+        '/cube/set_mode_service'
+    )
+
+    arm_client = node.create_client(
+        Trigger,
+        '/cube/arm'
+    )
+
+    disarm_client = node.create_client(
+        Trigger,
+        '/cube/disarm'
+    )
+
+    return MissionServiceClients(
+        set_mode_client=set_mode_client,
+        arm_client=arm_client,
+        disarm_client=disarm_client,
+    )
+
+
+# ============================================================
+# SERVICE HELPER FUNCTIONS FOR MISSION NODES
+# ============================================================
+
+def wait_for_mission_services(node, clients):
+    """
+    Mission node baslamadan once bridge servislerini bekler.
+    """
+
+    node.get_logger().info('Servisler bekleniyor...')
+
+    while not clients.set_mode_client.wait_for_service(timeout_sec=1.0):
+        node.get_logger().warn('/cube/set_mode_service bekleniyor...')
+
+    while not clients.arm_client.wait_for_service(timeout_sec=1.0):
+        node.get_logger().warn('/cube/arm bekleniyor...')
+
+    while not clients.disarm_client.wait_for_service(timeout_sec=1.0):
+        node.get_logger().warn('/cube/disarm bekleniyor...')
+
+    node.get_logger().info('Servisler hazir.')
+
+
+def call_set_mode(node, set_mode_client, mode_name):
+    """
+    Mission node icinden mod degistirme servisini cagirir.
+
+    Ornek:
+        call_set_mode(self, self.set_mode_client, 'MANUAL')
+        call_set_mode(self, self.set_mode_client, 'AUTO')
+        call_set_mode(self, self.set_mode_client, 'GUIDED')
+    """
+
+    req = SetMode.Request()
+    req.base_mode = 0
+    req.custom_mode = str(mode_name)
+
+    future = set_mode_client.call_async(req)
+    rclpy.spin_until_future_complete(node, future)
+
+    res = future.result()
+
+    if res is not None and res.mode_sent:
+        node.get_logger().info(f'Mod degistirildi: {mode_name}')
+        return True
+
+    node.get_logger().error(f'Mod degistirilemedi: {mode_name}')
+    return False
+
+
+def call_trigger_service(node, client, name):
+    """
+    ARM / DISARM gibi Trigger servislerini cagirir.
+
+    Ornek:
+        call_trigger_service(self, self.arm_client, 'ARM')
+        call_trigger_service(self, self.disarm_client, 'DISARM')
+    """
+
+    req = Trigger.Request()
+
+    future = client.call_async(req)
+    rclpy.spin_until_future_complete(node, future)
+
+    res = future.result()
+
+    if res is None:
+        node.get_logger().error(f'{name} cevabi gelmedi.')
         return False
 
-    mode_id = master.mode_mapping()[mode_name]
-    master.mav.set_mode_send(
-        master.target_system,
-        mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-        mode_id
+    node.get_logger().info(
+        f'{name}: success={res.success}, message={res.message}'
     )
-    return True
+
+    return bool(res.success)
 
 
-def download_mission(master, logger=None):
-    """Pixhawk'tan GPS noktalarını (Waypoints) indirir ve liste olarak döndürür."""
-    waypoints = []
+# ============================================================
+# COMMON CMD_VEL HELPER
+# ============================================================
 
-    # 1. Görev sayısını iste
-    master.mav.mission_request_list_send(master.target_system, master.target_component)
-    msg = master.recv_match(type=['MISSION_COUNT'], blocking=True, timeout=5)
+def publish_cmd_vel(cmd_vel_pub, linear_x, angular_z):
+    """
+    /cube/cmd_vel topic'ine hareket komutu yayinlar.
 
-    if not msg:
-        if logger: logger.error("Görev sayısı alınamadı (Zaman aşımı)!")
-        return waypoints
+    linear_x:
+        ileri/geri hiz komutu
 
-    count = msg.count
-    if logger: logger.info(f"Otopilottan {count} adet görev noktası indiriliyor...")
+    angular_z:
+        sag/sol donus komutu
+    """
 
-    # 2. Döngüyle tüm noktaları çek
-    for i in range(count):
-        master.mav.mission_request_int_send(master.target_system, master.target_component, i)
-        item_msg = master.recv_match(type=['MISSION_ITEM_INT', 'MISSION_ITEM'], blocking=True, timeout=5)
+    msg = Twist()
+    msg.linear.x = float(linear_x)
+    msg.angular.z = float(angular_z)
 
-        if item_msg:
-            lat = item_msg.x / 1e7
-            lon = item_msg.y / 1e7
-            command = item_msg.command
-            waypoints.append({"seq": i, "lat": lat, "lon": lon, "cmd": command})
+    cmd_vel_pub.publish(msg)
 
-    return waypoints
+
+def stop_vehicle(cmd_vel_pub, repeat_count=10):
+    """
+    Araci durdurmak icin birkac kez sifir cmd_vel yayinlar.
+    """
+
+    for _ in range(repeat_count):
+        publish_cmd_vel(
+            cmd_vel_pub,
+            0.0,
+            0.0
+        )
