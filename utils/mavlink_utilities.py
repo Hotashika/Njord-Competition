@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 
 import rclpy
@@ -370,3 +371,30 @@ def stop_vehicle(cmd_vel_pub, repeat_count=10):
             0.0,
             0.0
         )
+
+
+def calculate_gps_distance(lat1, lon1, lat2, lon2):
+    R = 6371000  # Dünya yarıçapı (metre)
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lon_rad = math.radians(lon2 - lon1)
+
+    y = math.sin(delta_lon_rad) * math.cos(lat2_rad)
+    x = (math.cos(lat1_rad) * math.sin(lat2_rad) -
+         math.sin(lat1_rad) * math.cos(lat2_rad) * math.cos(delta_lon_rad))
+
+    bearing_rad = math.atan2(y, x)
+
+    bearing_deg = (math.degrees(bearing_rad) + 360) % 360
+
+    return bearing_deg
