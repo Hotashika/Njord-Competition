@@ -4,6 +4,7 @@ import subprocess
 import sys
 import threading
 import time
+from config.camera_config import *
 
 import pyzed.sl as sl
 
@@ -18,10 +19,11 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 def init_camera():
     zed = sl.Camera()
     init = sl.InitParameters()
-    init.depth_mode = sl.DEPTH_MODE.NEURAL
-    init.coordinate_units = sl.UNIT.METER
-    init.camera_resolution = sl.RESOLUTION.VGA
-    init.camera_fps = 15
+
+    init.depth_mode = DEPTH_MODE
+    init.coordinate_units = COORDINATE_UNITS
+    init.camera_resolution = CAMERA_RESOLUTION
+    init.camera_fps = CAMERA_FPS
 
     print("[SYSTEM] ZED Kamera baslatiliyor...")
     if zed.open(init) != sl.ERROR_CODE.SUCCESS:
