@@ -35,25 +35,25 @@ class Task1Maneuvering:
 
             if detections:
                 for obj in detections:
-                    if (
-                            obj["class"] == "vessel" and
-                            0 < obj["distance"] < 3.0
-                    ):
-                        self.logger.info("Kırmızı şamandıra tespit edildi! Sancaktan (Sağdan) kaçınılıyor.")
-                        publish_cmd_vel(self.topics.cmd_vel_pub, linear_x=0.5, angular_z=-0.6)
+                    if obj["class"] != "vessel" or not (0 < obj["distance"] < 4.5):
+                        continue
 
-                        # TODO: Geçici waypoint atama
-                        return
+                    side = self._classify_side(obj["bearing"])  # "head_on" | "left" | "right"
 
-                    if (
-                            obj["class"] == "vessel" and
-                            0 < obj["distance"] < 3.0
-                    ):
-                        self.logger.info("Yeşil şamandıra tespit edildi! İskeleden (Soldan) kaçınılıyor.")
-                        publish_cmd_vel(self.topics.cmd_vel_pub, linear_x=0.5, angular_z=0.6)
+                    # TODO: Fill code
+                    match side:
+                        case "head_on":
+                            self.logger.info("Vessel comes from across! Avoiding from right side.")
+                            publish_cmd_vel(self.topics.cmd_vel_pub, linear_x=0.5, angular_z=-0.6)
+                        case "left":
+                            self.logger.info("Vessel comes from left side! Avoiding from right side.")
+                            publish_cmd_vel(self.topics.cmd_vel_pub, linear_x=0.5, angular_z=0.6)
+                        case "right":
+                            self.logger.info("Vessel comes from right side! Avoiding from right side.")
+                            publish_cmd_vel(self.topics.cmd_vel_pub, linear_x=0.5, angular_z=0.6)
 
-                        # TODO: Geçici waypoint atama
-                        return
+                    # TODO: Geçici waypoint atama
+                    return
 
             # TODO: Rotada ilerle
 

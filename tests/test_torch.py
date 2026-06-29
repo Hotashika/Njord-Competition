@@ -4,7 +4,7 @@ import torch
 cuda_available = torch.cuda.is_available()
 print(f"CUDA Available: {cuda_available}")
 
-# 2. Dynamically assign the device (falls back to CPU if GPU isn't ready)
+# 2. Dynamically assign the device
 device = torch.device("cuda" if cuda_available else "cpu")
 print(f"Using device: {device}")
 

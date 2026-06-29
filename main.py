@@ -1,14 +1,16 @@
 import os
-import threading
-import sys
-import subprocess
-import time
 import shlex
+import subprocess
+import sys
+import threading
+import time
+
 import pyzed.sl as sl
-from servers import video_server
-from servers import data_server
+
 from core import data_writer
 from core import shared_state
+from servers import data_server
+from servers import video_server
 
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,7 +27,6 @@ def init_camera():
     if zed.open(init) != sl.ERROR_CODE.SUCCESS:
         raise RuntimeError("ZED acilamadi. Kamera baglantisini kontrol edin.")
     return zed
-
 
 
 if __name__ == "__main__":

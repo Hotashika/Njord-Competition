@@ -1,6 +1,7 @@
+from multiprocessing import shared_memory
+
 import numpy as np
 import pyzed.sl as sl
-from multiprocessing import shared_memory
 
 from config.camera_config import (
     CAMERA_RESOLUTION,

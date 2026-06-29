@@ -1,11 +1,14 @@
-import time
 import json
+import time
+from multiprocessing import shared_memory
+
+import numpy as np
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from multiprocessing import shared_memory
-import numpy as np
+
 from config.camera_config import RGB_SHAPE, DEPTH_SHAPE
+from config.vision_config import BUOY_MODEL_PATH, VESSEL_MODEL_PATH
 from vision.detector import BuoyDetector, VesselDetector
 
 TASK_DETECTOR_MAP = {
@@ -15,8 +18,8 @@ TASK_DETECTOR_MAP = {
 }
 
 DETECTOR_REGISTRY = {
-    "buoy": (BuoyDetector, "models/buoy_best.pt"),
-    "vessel": (VesselDetector, "models/vessel_best.pt"),
+    "buoy": (BuoyDetector, BUOY_MODEL_PATH),
+    "vessel": (VesselDetector, VESSEL_MODEL_PATH),
 }
 
 

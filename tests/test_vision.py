@@ -1,24 +1,26 @@
 import os
 import sys
 import unittest
+
 import numpy as np
+
+from config.camera_config import CAMERA_WIDTH, CAMERA_HEIGHT
+from config.vision_config import BUOY_MODEL_PATH
+from vision.detector import BuoyDetector
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.append(PROJECT_ROOT)
-
-from vision.detector import BuoyDetector
 
 
 class TestVisionDetector(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Test serisi başlarken YOLO modelini CPU modunda zorunlu yükleriz."""
         print("\n[TEST] YOLO Modeli yükleniyor (CPU Modunda)...")
         try:
-            # TEST ORTAMINDA ÇÖKMEYİ ENGELLEMEK İÇİN DEVICE="CPU" EKLENDİ
-            cls.detector = BuoyDetector(model_path="models/best.pt", device="cpu")
+            # Using cpu for test env
+            cls.detector = BuoyDetector(model_path=BUOY_MODEL_PATH, device="cpu")
             print("[TEST] Model başarıyla yüklendi.")
         except Exception as e:
             cls.detector = None
@@ -37,8 +39,8 @@ class TestVisionDetector(unittest.TestCase):
 
         print("\n[TEST] Sahte veri ile tespit testi yapılıyor...")
 
-        dummy_bgr = np.zeros((376, 672, 3), dtype=np.uint8)
-        dummy_depth = np.full((376, 672), 5.0, dtype=np.float32)
+        dummy_bgr = np.zeros((CAMERA_HEIGHT, CAMERA_WIDTH, 3), dtype=np.uint8)
+        dummy_depth = np.full((CAMERA_HEIGHT, CAMERA_WIDTH), 5.0, dtype=np.float32)
 
         try:
             detections = self.detector.detect(dummy_bgr, dummy_depth)
@@ -57,8 +59,8 @@ class TestVisionDetector(unittest.TestCase):
         if self.detector is None:
             self.skipTest("Model yüklenmediği için bu test atlanıyor.")
 
-        dummy_bgr = np.zeros((376, 672, 3), dtype=np.uint8)
-        dummy_depth = np.full((376, 672), np.nan, dtype=np.float32)
+        dummy_bgr = np.zeros((CAMERA_HEIGHT, CAMERA_WIDTH, 3), dtype=np.uint8)
+        dummy_depth = np.full((CAMERA_HEIGHT, CAMERA_WIDTH), np.nan, dtype=np.float32)
 
         try:
             detections = self.detector.detect(dummy_bgr, dummy_depth)
