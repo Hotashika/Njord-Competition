@@ -52,6 +52,8 @@ if __name__ == "__main__":
         vision_path = os.path.join(PROJECT_ROOT, "vision", "vision_node.py")
         bridge_path = os.path.join(PROJECT_ROOT, "bridge", "bridge_node.py")
 
+        task1_path = os.path.join(PROJECT_ROOT, "missions", "task1_maneuvering_and_path_finding.py")
+
         cmd_vision = (
             f"{ros2_setup} && {python_path_setup} && {shlex.quote(sys.executable)} {shlex.quote(vision_path)}"
         )
@@ -59,13 +61,32 @@ if __name__ == "__main__":
             f"{ros2_setup} && {python_path_setup} && {shlex.quote(sys.executable)} {shlex.quote(bridge_path)}"
         )
 
+        # ------------------------------
+        #   TASK START # ---------------
+        # ------------------------------
+        cmd_task1 = (
+            f"{ros2_setup} && {python_path_setup} && {shlex.quote(sys.executable)} {shlex.quote(task1_path)}"
+        )
+        # ------------------------------
+
         p_bridge = subprocess.Popen(cmd_bridge, shell=True, executable="/bin/bash")
         child_processes.append(p_bridge)
         print(f" -> Bridge Node baslatildi (PID: {p_bridge.pid})")
 
         p_vision = subprocess.Popen(cmd_vision, shell=True, executable="/bin/bash")
         child_processes.append(p_vision)
-        print(f" -> Vision Node baslatildi (PID: {p_vision.pid})\n")
+        print(f" -> Vision Node baslatildi (PID: {p_vision.pid})")
+
+        time.sleep(2)
+
+        # ------------------------------
+        #   TASK START # ---------------
+        # ------------------------------
+
+        p_task1 = subprocess.Popen(cmd_task1, shell=True, executable="/bin/bash")
+        child_processes.append(p_task1)
+        print(f" -> Task 1 Node baslatildi (PID: {p_task1.pid})\n")
+        # ------------------------------
 
         print("[SYSTEM] Sistem aktif. Kapatmak icin terminalde Ctrl+C yapin.")
 
