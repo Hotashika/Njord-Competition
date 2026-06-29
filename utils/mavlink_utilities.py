@@ -1,13 +1,11 @@
 from dataclasses import dataclass
 
 import rclpy
-
+from geometry_msgs.msg import Twist
+from mavros_msgs.srv import SetMode
 from sensor_msgs.msg import Imu, NavSatFix, BatteryState
 from std_msgs.msg import String, Float32
-from geometry_msgs.msg import Twist
-
 from std_srvs.srv import Trigger
-from mavros_msgs.srv import SetMode
 
 
 # ============================================================
@@ -347,9 +345,11 @@ def publish_cmd_vel(cmd_vel_pub, linear_x, angular_z):
 
     linear_x:
         ileri/geri hiz komutu
+        Açıklama: Pozitif degerler ileri, negatif degerler geri hareket anlamina gelir.
 
     angular_z:
         sag/sol donus komutu
+        Açıklama: Pozitif degerler saat yönünün tersine (sola), negatif degerler saat yönünde (sağa) donus anlamina gelir.
     """
 
     msg = Twist()

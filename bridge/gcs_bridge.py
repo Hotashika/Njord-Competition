@@ -1,16 +1,15 @@
 from pymavlink import mavutil
 
-
 DEFAULT_CONNECTION_STRING = "udpin:127.0.0.1:14550"
 DEFAULT_BAUD = 115200
 DEFAULT_HEARTBEAT_TIMEOUT = 15
 
 
 def connect_mavlink(
-    connection_string=DEFAULT_CONNECTION_STRING,
-    baud=DEFAULT_BAUD,
-    heartbeat_timeout=DEFAULT_HEARTBEAT_TIMEOUT,
-    logger=None,
+        connection_string=DEFAULT_CONNECTION_STRING,
+        baud=DEFAULT_BAUD,
+        heartbeat_timeout=DEFAULT_HEARTBEAT_TIMEOUT,
+        logger=None,
 ):
     """MAVLink baglantisi kurar ve heartbeat bekledikten sonra master nesnesini dondurur.
 

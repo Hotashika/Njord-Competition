@@ -1,7 +1,5 @@
 """
 ZED Camera Configuration
-
-Bu dosya kamera ile ilgili tüm sabit ayarları merkezi olarak tutar.
 """
 
 import pyzed.sl as sl

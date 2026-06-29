@@ -1,17 +1,21 @@
 import csv
 import os
 import time
+
+import cv2
 import numpy as np
 import pyzed.sl as sl
-import cv2
+
 from core import shared_state
 
 OUTPUT_DIR = "logs"
 DEPTH_DIR = os.path.join(OUTPUT_DIR, "depth_frames")
 CSV_PATH = os.path.join(OUTPUT_DIR, "imu_log.csv")
 
+
 def setup_output_dirs():
     os.makedirs(DEPTH_DIR, exist_ok=True)
+
 
 def run(zed):
     setup_output_dirs()
@@ -44,16 +48,16 @@ def run(zed):
             imu_pose = sensors_data.get_imu_data().get_pose()
             pitch, yaw, roll = imu_pose.get_euler_angles()
 
-            # numpy kaydet
+            # Save Numpy
             depth_filename = f"depth_{frame_index:05d}.npy"
             depth_path = os.path.join(DEPTH_DIR, depth_filename)
             np.save(depth_path, downsampled_depth)
 
-            # CSV'ye yaz
+            # Write CVS
             writer.writerow([timestamp_ms, pitch, yaw, roll, depth_filename])
             csvfile.flush()
 
-            # shared_state güncelle
+            # Update shared state
             with shared_state.data_lock:
                 shared_state.latest_depth_array = downsampled_depth
                 shared_state.latest_imu = {"pitch": pitch, "yaw": yaw, "roll": roll}
@@ -61,8 +65,7 @@ def run(zed):
 
             with shared_state.frame_lock:
                 shared_state.latest_frame = frame_bgr
-                
-                # Shared Memory'ye ZED'in orijinal VGA (376x672) çözünürlüklü verisini koyuyoruz
+
                 shared_state.shm_rgb[:] = image.get_data()
                 shared_state.shm_depth[:] = depth.get_data()
                 shared_state.shm_meta[0] += 1

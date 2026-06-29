@@ -1,8 +1,10 @@
 import cv2
 from flask import Flask, Response
+
 from core import shared_state
 
 app = Flask(__name__)
+
 
 def generate():
     while True:
@@ -19,17 +21,16 @@ def generate():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n')
 
+
 @app.route('/video_feed')
 def video_feed():
     return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 @app.route('/health')
 def health():
     return 'OK', 200
 
+
 def start(port=5000):
     app.run(host='0.0.0.0', port=port, threaded=True, use_reloader=False)
-
-
-
-# FLASK İLE YER KONTROL İSTASYONUNA VIDEO AKIŞI SAĞLAYAN SUNUCU
